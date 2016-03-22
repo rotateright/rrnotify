@@ -1,0 +1,66 @@
+#! /bin/sh
+#
+# Script to load the rrnotify module, create the directory /dev/rrnotify,
+# and mount the pseudo file system rrnotifyfs on it.
+
+RETVAL=0
+MODPROBE=/sbin/modprobe
+
+MODULE_ARGS=""
+
+# some distributions (SLES11) refuse to load unsupported modules by default
+if ${MODPROBE} -c | grep -q '^allow_unsupported_modules  *0'; then
+	MODPROBE="${MODPROBE} --allow-unsupported-modules"
+fi
+
+start ()
+{
+	echo "Initializing rrnotify driver - args:${MODULE_ARGS}"
+	${MODPROBE} -q rrnotify ${MODULE_ARGS} && mkdir -p /dev/rrnotify && mount -t rrnotifyfs nodev /dev/rrnotify
+	RETVAL=$?
+	echo "return: $RETVAL"
+}
+
+stop ()
+{
+	echo "Shutting down rrnotify driver"
+	umount /dev/rrnotify 2> /dev/null && ${MODPROBE} -q -r rrnotify 2> /dev/null
+	RETVAL=$?
+	echo "return: $RETVAL"
+}
+
+status () 
+{
+	echo "Checking for rrnotify driver"
+	grep /dev/rrnotify /etc/mtab >/dev/null
+	RETVAL=$?
+	echo "return: $RETVAL"
+}
+
+SCRIPT_NAME=$0
+ACTION=$1
+
+# append any remaining arguments to MODULE_ARGS
+if [ $# -gt 1 ]; then
+	shift
+	for i in "$@" ; do
+		MODULE_ARGS="${MODULE_ARGS} ${i}"
+	done
+fi
+
+case "${ACTION}" in
+	start)
+		start
+		;;
+	stop)
+		stop
+		;;
+	status)
+		status
+		;;
+	*)
+		echo "Usage: ${SCRIPT_NAME} {start} [module args]"
+		echo "       ${SCRIPT_NAME} {stop|status}"
+		RETVAL=1
+esac
+exit $RETVAL
