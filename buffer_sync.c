@@ -136,7 +136,9 @@ static void add_task_thread_info(struct task_struct * task)
 #endif
 	
 	// Write out the end time
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,16)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4,2,0)
+	ktime_get_ts(&end_time);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,16)
 	do_posix_clock_monotonic_gettime(&end_time);
 #else
 	end_time = current_kernel_time();
